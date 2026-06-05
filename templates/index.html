@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>Waste Detection</title>
+</head>
+
+<body>
+
+<h1>Waste Detection System</h1>
+
+<video id="video" width="700" autoplay></video>
+
+<br><br>
+
+<button onclick="captureNow()">
+    Manual Capture
+</button>
+
+<button onclick="captureAfter10Seconds()">
+    Capture After 10 Seconds
+</button>
+
+<p id="status"></p>
+
+<h2>Detection Result</h2>
+
+<img
+    id="resultImage"
+    width="700"
+    style="border:1px solid black;"
+>
+
+<canvas id="canvas" style="display:none;"></canvas>
+
+<script>
+
+const video =
+document.getElementById("video");
+
+navigator.mediaDevices.getUserMedia({
+    video: true
+})
+.then(stream => {
+    video.srcObject = stream;
+});
+
+function sendImage(blob) {
+
+    fetch("/upload", {
+        method: "POST",
+        body: blob
+    })
+    .then(response => response.text())
+    .then(data => {
+
+        document.getElementById("status")
+        .innerHTML = data;
+
+        document.getElementById("resultImage")
+        .src =
+        "/result?t=" + new Date().getTime();
+
+    });
+}
+
+function captureNow() {
+
+    const canvas =
+    document.getElementById("canvas");
+
+    canvas.width =
+    video.videoWidth;
+
+    canvas.height =
+    video.videoHeight;
+
+    const ctx =
+    canvas.getContext("2d");
+
+    ctx.drawImage(
+        video,
+        0,
+        0,
+        canvas.width,
+        canvas.height
+    );
+
+    canvas.toBlob(blob => {
+        sendImage(blob);
+    }, "image/jpeg");
+}
+
+function captureAfter10Seconds() {
+
+    let seconds = 10;
+
+    const status =
+    document.getElementById("status");
+
+    status.innerHTML =
+    "Capturing in 10 seconds...";
+
+    const timer =
+    setInterval(() => {
+
+        seconds--;
+
+        status.innerHTML =
+        "Capturing in " +
+        seconds +
+        " seconds...";
+
+        if (seconds <= 0) {
+
+            clearInterval(timer);
+
+            captureNow();
+
+        }
+
+    }, 1000);
+}
+
+</script>
+
+</body>
+
+</html>
