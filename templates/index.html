@@ -9,7 +9,13 @@
 
 <h1>Waste Detection System</h1>
 
-<video id="video" width="700" autoplay></video>
+<!-- Live camera preview -->
+<img 
+    id="video" 
+    width="700" 
+    src="http://192.168.1.2:8080/video"
+    style="border:1px solid black;"
+>
 
 <br><br>
 
@@ -25,26 +31,11 @@
 
 <h2>Detection Result</h2>
 
-<img
-    id="resultImage"
-    width="700"
-    style="border:1px solid black;"
->
-
-<canvas id="canvas" style="display:none;"></canvas>
+<img id="resultImage" width="700" style="border:1px solid black;">
 
 <script>
 
-const video =
-document.getElementById("video");
-
-navigator.mediaDevices.getUserMedia({
-    video: true
-})
-.then(stream => {
-    video.srcObject = stream;
-});
-
+// send image to Flask
 function sendImage(blob) {
 
     fetch("/upload", {
@@ -54,69 +45,51 @@ function sendImage(blob) {
     .then(response => response.text())
     .then(data => {
 
-        document.getElementById("status")
-        .innerHTML = data;
+        document.getElementById("status").innerHTML = data;
 
-        document.getElementById("resultImage")
-        .src =
+        document.getElementById("resultImage").src =
         "/result?t=" + new Date().getTime();
 
+    })
+    .catch(err => {
+        console.error(err);
+        document.getElementById("status").innerHTML = "Upload failed";
     });
 }
 
+// capture using Flask proxy
 function captureNow() {
 
-    const canvas =
-    document.getElementById("canvas");
+    const status = document.getElementById("status");
+    status.innerHTML = "Capturing...";
 
-    canvas.width =
-    video.videoWidth;
+    fetch("/capture-phone")
+    .then(res => res.blob())
+    .then(blob => {
 
-    canvas.height =
-    video.videoHeight;
-
-    const ctx =
-    canvas.getContext("2d");
-
-    ctx.drawImage(
-        video,
-        0,
-        0,
-        canvas.width,
-        canvas.height
-    );
-
-    canvas.toBlob(blob => {
         sendImage(blob);
-    }, "image/jpeg");
+
+    })
+    .catch(err => {
+        console.error(err);
+        status.innerHTML = "Capture failed";
+    });
 }
 
+// timer capture
 function captureAfter10Seconds() {
 
     let seconds = 10;
+    const status = document.getElementById("status");
 
-    const status =
-    document.getElementById("status");
+    const timer = setInterval(() => {
 
-    status.innerHTML =
-    "Capturing in 10 seconds...";
-
-    const timer =
-    setInterval(() => {
-
+        status.innerHTML = "Capturing in " + seconds + " seconds...";
         seconds--;
 
-        status.innerHTML =
-        "Capturing in " +
-        seconds +
-        " seconds...";
-
-        if (seconds <= 0) {
-
+        if (seconds < 0) {
             clearInterval(timer);
-
             captureNow();
-
         }
 
     }, 1000);
